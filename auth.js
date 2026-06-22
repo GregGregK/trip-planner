@@ -398,8 +398,18 @@ function showError(element, message) {
 function showLoginForm() {
   const loginForm = document.getElementById('loginForm');
   const registerForm = document.getElementById('registerForm');
+  const forgotForm = document.getElementById('forgotPasswordForm');
+  
+  // Mostrar login
   if (loginForm) loginForm.style.display = 'block';
+  
+  // Esconder registro
   if (registerForm) registerForm.style.display = 'none';
+  
+  // Esconder recuperação de senha (REMOVER completamente)
+  if (forgotForm) {
+    forgotForm.remove(); // Remove o elemento do DOM
+  }
   
   // Limpar erros
   const loginError = document.getElementById('loginError');
@@ -409,8 +419,18 @@ function showLoginForm() {
 function showRegisterForm() {
   const loginForm = document.getElementById('loginForm');
   const registerForm = document.getElementById('registerForm');
+  const forgotForm = document.getElementById('forgotPasswordForm');
+  
+  // Esconder login
   if (loginForm) loginForm.style.display = 'none';
+  
+  // Mostrar registro
   if (registerForm) registerForm.style.display = 'block';
+  
+  // Esconder recuperação de senha (REMOVER completamente)
+  if (forgotForm) {
+    forgotForm.remove(); // Remove o elemento do DOM
+  }
   
   // Limpar erros
   const registerError = document.getElementById('registerError');
@@ -500,57 +520,53 @@ document.addEventListener('keydown', function(e) {
 function showForgotPasswordForm() {
   const loginForm = document.getElementById('loginForm');
   const registerForm = document.getElementById('registerForm');
-  const forgotForm = document.getElementById('forgotPasswordForm');
   
+  // Esconder login
   if (loginForm) loginForm.style.display = 'none';
+  
+  // Esconder registro
   if (registerForm) registerForm.style.display = 'none';
   
-  // Criar formulário se não existir
-  if (!forgotForm) {
-    const authCard = document.querySelector('.auth-card');
-    if (!authCard) return;
-    
-    const forgotHTML = `
-      <div id="forgotPasswordForm" class="auth-form">
-        <h2>Recuperar Senha</h2>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
-          Digite seu email para receber um link de redefinição de senha.
-        </p>
-        <div class="auth-field">
-          <label>Email</label>
-          <input type="email" id="forgotEmail" placeholder="seu@email.com" autocomplete="email" />
-        </div>
-        <button class="auth-btn auth-btn-primary" onclick="handleForgotPassword()">
-          <i class="ti ti-mail-forward"></i> Enviar link de recuperação
-        </button>
-        <p class="auth-switch">
-          <a href="#" onclick="event.preventDefault(); showLoginForm();">Voltar para o login</a>
-        </p>
-        <div id="forgotMessage" class="auth-message" style="display:none"></div>
-        <div id="forgotError" class="auth-error" style="display:none"></div>
+  // Remover formulário de recuperação existente (se houver)
+  const existingForgot = document.getElementById('forgotPasswordForm');
+  if (existingForgot) existingForgot.remove();
+  
+  // Criar novo formulário
+  const forgotHTML = `
+    <div id="forgotPasswordForm" class="auth-form" style="display:block">
+      <h2>Recuperar Senha</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
+        Digite seu email para receber um link de redefinição de senha.
+      </p>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="forgotEmail" placeholder="seu@email.com" autocomplete="email" />
       </div>
-    `;
-    
-    // Adicionar após o registerForm
-    const registerFormEl = document.getElementById('registerForm');
-    if (registerFormEl) {
-      registerFormEl.insertAdjacentHTML('afterend', forgotHTML);
-    }
-  } else {
-    forgotForm.style.display = 'block';
+      <button class="auth-btn auth-btn-primary" onclick="handleForgotPassword()">
+        <i class="ti ti-mail-forward"></i> Enviar link de recuperação
+      </button>
+      <div class="auth-forgot" style="margin-top:12px">
+        <a href="#" onclick="event.preventDefault(); showLoginForm();">
+          ← Voltar para o login
+        </a>
+      </div>
+      <div id="forgotMessage" class="auth-message" style="display:none"></div>
+      <div id="forgotError" class="auth-error" style="display:none"></div>
+    </div>
+  `;
+  
+  // Inserir após o registerForm
+  const registerFormEl = document.getElementById('registerForm');
+  if (registerFormEl) {
+    registerFormEl.insertAdjacentHTML('afterend', forgotHTML);
   }
   
-  // Limpar campos
-  const emailInput = document.getElementById('forgotEmail');
-  if (emailInput) emailInput.value = '';
-  
-  const messageDiv = document.getElementById('forgotMessage');
-  if (messageDiv) messageDiv.style.display = 'none';
-  
-  const errorDiv = document.getElementById('forgotError');
-  if (errorDiv) errorDiv.style.display = 'none';
+  // Focar no campo de email
+  setTimeout(() => {
+    const emailInput = document.getElementById('forgotEmail');
+    if (emailInput) emailInput.focus();
+  }, 100);
 }
-
 async function handleForgotPassword() {
   const email = document.getElementById('forgotEmail').value;
   const errorDiv = document.getElementById('forgotError');

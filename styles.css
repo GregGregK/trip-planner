@@ -1433,22 +1433,45 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: .7; }
   }
 }
 /* Estilos para recuperação de senha */
+/* Link de voltar */
 .auth-forgot {
   text-align: center;
   margin-top: 12px;
 }
 
 .auth-forgot a {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   text-decoration: none;
   cursor: pointer;
   transition: color .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .auth-forgot a:hover {
   color: var(--accent);
   text-decoration: underline;
+}
+
+/* Mensagem de sucesso */
+.auth-message {
+  background: var(--accent-light);
+  color: var(--accent);
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin-top: 12px;
+  text-align: center;
+  animation: fadeIn .3s ease;
+  line-height: 1.6;
+}
+
+.auth-message strong {
+  display: block;
+  font-size: 15px;
+  margin: 4px 0;
 }
 
 /* Mensagem de sucesso */
