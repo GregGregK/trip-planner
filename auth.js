@@ -50,13 +50,18 @@ function showLoginScreen() {
               <label>Senha</label>
               <input type="password" id="loginPassword" placeholder="Sua senha" autocomplete="current-password" />
             </div>
-            <button class="auth-btn auth-btn-primary" onclick="handleLogin()">
-              <i class="ti ti-login-2"></i> Entrar
-            </button>
-            <p class="auth-switch">
-              Não tem conta? 
-              <a href="#" onclick="event.preventDefault(); showRegisterForm();">Criar conta</a>
-            </p>
+           <button class="auth-btn auth-btn-primary" onclick="handleLogin()">
+  <i class="ti ti-login-2"></i> Entrar
+</button>
+<div class="auth-forgot">
+  <a href="#" onclick="event.preventDefault(); showForgotPasswordForm();">
+    Esqueceu a senha?
+  </a>
+</div>
+<p class="auth-switch">
+  Não tem conta? 
+  <a href="#" onclick="event.preventDefault(); showRegisterForm();">Criar conta</a>
+</p>
             <div id="loginError" class="auth-error" style="display:none"></div>
           </div>
           
@@ -484,5 +489,276 @@ document.addEventListener('keydown', function(e) {
       e.preventDefault();
       handleRegister();
     }
+  }
+});
+
+// =============================================
+// RECUPERAÇÃO DE SENHA
+// =============================================
+
+// Mostrar formulário de "Esqueceu a senha"
+function showForgotPasswordForm() {
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const forgotForm = document.getElementById('forgotPasswordForm');
+  
+  if (loginForm) loginForm.style.display = 'none';
+  if (registerForm) registerForm.style.display = 'none';
+  
+  // Criar formulário se não existir
+  if (!forgotForm) {
+    const authCard = document.querySelector('.auth-card');
+    if (!authCard) return;
+    
+    const forgotHTML = `
+      <div id="forgotPasswordForm" class="auth-form">
+        <h2>Recuperar Senha</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
+          Digite seu email para receber um link de redefinição de senha.
+        </p>
+        <div class="auth-field">
+          <label>Email</label>
+          <input type="email" id="forgotEmail" placeholder="seu@email.com" autocomplete="email" />
+        </div>
+        <button class="auth-btn auth-btn-primary" onclick="handleForgotPassword()">
+          <i class="ti ti-mail-forward"></i> Enviar link de recuperação
+        </button>
+        <p class="auth-switch">
+          <a href="#" onclick="event.preventDefault(); showLoginForm();">Voltar para o login</a>
+        </p>
+        <div id="forgotMessage" class="auth-message" style="display:none"></div>
+        <div id="forgotError" class="auth-error" style="display:none"></div>
+      </div>
+    `;
+    
+    // Adicionar após o registerForm
+    const registerFormEl = document.getElementById('registerForm');
+    if (registerFormEl) {
+      registerFormEl.insertAdjacentHTML('afterend', forgotHTML);
+    }
+  } else {
+    forgotForm.style.display = 'block';
+  }
+  
+  // Limpar campos
+  const emailInput = document.getElementById('forgotEmail');
+  if (emailInput) emailInput.value = '';
+  
+  const messageDiv = document.getElementById('forgotMessage');
+  if (messageDiv) messageDiv.style.display = 'none';
+  
+  const errorDiv = document.getElementById('forgotError');
+  if (errorDiv) errorDiv.style.display = 'none';
+}
+
+async function handleForgotPassword() {
+  const email = document.getElementById('forgotEmail').value;
+  const errorDiv = document.getElementById('forgotError');
+  const messageDiv = document.getElementById('forgotMessage');
+  const btn = document.querySelector('#forgotPasswordForm .auth-btn');
+  
+  if (!email) {
+    showError(errorDiv, 'Digite seu email');
+    return;
+  }
+  
+  try {
+    if (errorDiv) errorDiv.style.display = 'none';
+    if (messageDiv) messageDiv.style.display = 'none';
+    
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ti ti-loader"></i> Enviando...';
+    }
+    
+    await auth.sendPasswordResetEmail(email, {
+      url: window.location.origin + window.location.pathname,
+      handleCodeInApp: false
+    });
+    
+    // Mostrar mensagem de sucesso
+    if (messageDiv) {
+      messageDiv.innerHTML = `
+        <i class="ti ti-mail-check" style="font-size:20px;display:block;margin-bottom:8px"></i>
+        <strong>Email enviado!</strong><br>
+        Verifique sua caixa de entrada (e spam) para redefinir sua senha.
+      `;
+      messageDiv.style.display = 'block';
+      messageDiv.className = 'auth-success';
+    }
+    
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ti ti-check"></i> Email enviado';
+    }
+    
+    console.log('✅ Email de recuperação enviado para:', email);
+    
+  } catch (error) {
+    console.error('Erro ao enviar email de recuperação:', error);
+    
+    let message = 'Erro ao enviar email';
+    
+    switch (error.code) {
+      case 'auth/invalid-email':
+        message = 'Email inválido';
+        break;
+      case 'auth/user-not-found':
+        message = 'Nenhuma conta encontrada com este email';
+        break;
+      case 'auth/too-many-requests':
+        message = 'Muitas tentativas. Aguarde um momento.';
+        break;
+      default:
+        message = error.message;
+    }
+    
+    showError(errorDiv, message);
+    
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-mail-forward"></i> Enviar link de recuperação';
+    }
+  }
+}
+
+// =============================================
+// VERIFICAÇÃO DE EMAIL
+// =============================================
+
+// Enviar email de verificação após registro
+async function sendVerificationEmail() {
+  if (!auth.currentUser) return;
+  
+  try {
+    await auth.currentUser.sendEmailVerification({
+      url: window.location.origin + window.location.pathname,
+      handleCodeInApp: false
+    });
+    
+    console.log('✅ Email de verificação enviado');
+    
+    // Mostrar aviso na interface
+    showVerificationBanner();
+    
+  } catch (error) {
+    console.error('Erro ao enviar verificação:', error);
+  }
+}
+
+// Mostrar banner de verificação de email
+function showVerificationBanner() {
+  // Remover banner existente
+  const existingBanner = document.getElementById('verifyEmailBanner');
+  if (existingBanner) existingBanner.remove();
+  
+  if (!auth.currentUser || auth.currentUser.emailVerified) return;
+  
+  const banner = document.createElement('div');
+  banner.id = 'verifyEmailBanner';
+  banner.style.cssText = `
+    background: var(--blue-light);
+    color: var(--blue);
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  `;
+  
+  banner.innerHTML = `
+    <span>
+      <i class="ti ti-mail"></i>
+      <strong>Verifique seu email!</strong> 
+      Enviamos um link para ${auth.currentUser.email}
+    </span>
+    <button onclick="sendVerificationEmail()" style="
+      background: var(--blue);
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+    ">
+      Reenviar email
+    </button>
+    <button onclick="document.getElementById('verifyEmailBanner').remove()" style="
+      background: none;
+      border: none;
+      color: var(--blue);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0 4px;
+    ">
+      <i class="ti ti-x"></i>
+    </button>
+  `;
+  
+  // Inserir após a sidebar
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) {
+    sidebar.parentNode.insertBefore(banner, sidebar);
+  }
+}
+
+// Verificar email após login
+async function checkEmailVerification() {
+  if (!auth.currentUser) return;
+  
+  // Recarregar usuário para obter status atualizado
+  await auth.currentUser.reload();
+  
+  if (auth.currentUser.emailVerified) {
+    // Email verificado, remover banner
+    const banner = document.getElementById('verifyEmailBanner');
+    if (banner) banner.remove();
+    console.log('✅ Email verificado');
+  } else {
+    // Email não verificado, mostrar banner
+    showVerificationBanner();
+  }
+}
+
+// =============================================
+// ATUALIZAR handleRegister E onAuthStateChanged
+// =============================================
+
+// Atualize a função handleRegister (adicione no final, após criar viagem):
+async function handleRegister() {
+  // ... (código existente igual) ...
+  
+  // Após criar usuário com sucesso:
+  // Enviar email de verificação
+  try {
+    await sendVerificationEmail();
+  } catch (e) {
+    console.log('⚠️ Não foi possível enviar verificação:', e.message);
+  }
+  
+  // O restante do código continua igual...
+}
+
+// Atualize onAuthStateChanged (adicione verificação):
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    currentUser = user;
+    console.log('✓ Usuário logado:', user.email);
+    console.log('📧 Email verificado:', user.emailVerified);
+    
+    await loadUserTrip();
+    showApp();
+    
+    // Verificar email (se não estiver verificado, mostra banner)
+    await checkEmailVerification();
+    
+  } else {
+    currentUser = null;
+    showLoginScreen();
   }
 });
