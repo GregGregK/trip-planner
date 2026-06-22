@@ -592,15 +592,33 @@ async function handleForgotPassword() {
       handleCodeInApp: false
     });
     
-    // Mostrar mensagem de sucesso
+    // Mostrar mensagem de sucesso COM instruções sobre spam
     if (messageDiv) {
       messageDiv.innerHTML = `
-        <i class="ti ti-mail-check" style="font-size:20px;display:block;margin-bottom:8px"></i>
-        <strong>Email enviado!</strong><br>
-        Verifique sua caixa de entrada (e spam) para redefinir sua senha.
+        <i class="ti ti-mail-check" style="font-size:24px;display:block;margin-bottom:8px"></i>
+        <strong>Email enviado!</strong>
+        <p style="margin-top:8px">
+          Enviamos um link para <strong>${email}</strong>
+        </p>
+        <div style="
+          background: var(--yellow-light, #fef3c7);
+          border: 1px solid var(--yellow, #f59e0b);
+          color: var(--yellow-dark, #92400e);
+          padding: 10px;
+          border-radius: 6px;
+          margin-top: 12px;
+          font-size: 12px;
+          text-align: left;
+        ">
+          <strong>⚠️ Não encontrou o email?</strong><br>
+          • Verifique a pasta de <strong>SPAM</strong> ou <strong>Lixo eletrônico</strong><br>
+          • Verifique a aba <strong>Promoções</strong> (Gmail)<br>
+          • Adicione <strong>noreply@trip-planner-bc3f9.firebaseapp.com</strong> aos seus contatos<br>
+          • Aguarde até 5 minutos para o email chegar
+        </div>
       `;
       messageDiv.style.display = 'block';
-      messageDiv.className = 'auth-success';
+      messageDiv.className = 'auth-message';
     }
     
     if (btn) {
