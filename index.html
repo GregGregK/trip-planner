@@ -1,0 +1,167 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planejador de Viagem</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="styles.css">
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<!-- Firebase Config -->
+<script src="firebase-config.js"></script>
+</head>
+<body>
+<div class="app">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="app-title"><i class="ti ti-map-2"></i> Planejador de Viagem</div>
+    <div class="app-subtitle">Organize países, passeios e horários</div>
+    <button class="sidebar-toggle" id="sidebarToggle" title="Expandir/Recolher calendário">
+      <i class="ti ti-chevron-up"></i>
+    </button>
+  </div>
+  <div class="sidebar-collapsible" id="sidebarCollapsible">
+    <div class="calendar">
+      <div class="cal-nav" id="calNav">
+        <!-- Preenchido dinamicamente pelo calendar.js -->
+      </div>
+      <div class="cal-grid" id="calGrid">
+        <div class="cal-dow">D</div><div class="cal-dow">S</div><div class="cal-dow">T</div>
+        <div class="cal-dow">Q</div><div class="cal-dow">Q</div><div class="cal-dow">S</div><div class="cal-dow">S</div>
+      </div>
+    </div>
+    <div class="days-list">
+      <div class="days-list-title">Dias planejados</div>
+      <div id="daysListItems"></div>
+    </div>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+  <div class="main-tabs">
+    <button class="tab-btn active" id="tab-days" onclick="switchTab('days')"><i class="ti ti-calendar"></i> Dias</button>
+    <button class="tab-btn" id="tab-tours" onclick="switchTab('tours')"><i class="ti ti-map"></i> Passeios</button>
+    <button class="tab-btn" id="tab-links" onclick="switchTab('links')"><i class="ti ti-link"></i> Links</button>
+    <button class="tab-btn" id="tab-hotels" onclick="switchTab('hotels')"><i class="ti ti-bed"></i> Hotéis</button>
+    <button class="tab-btn" id="tab-map" onclick="switchTab('map')"><i class="ti ti-map-2"></i> Mapa</button>
+    <button class="tab-btn" id="tab-guide" onclick="switchTab('guide')"><i class="ti ti-notes"></i> Guia</button>
+  </div>
+
+  <!-- Panel: Dias -->
+  <div class="tab-panel active" id="panel-days">
+    <div class="main-header">
+      <div>
+        <div class="main-date" id="mainDate">Selecione um dia</div>
+        <div class="main-weekday" id="mainWeekday">Clique no calendário para começar</div>
+      </div>
+      <button class="btn btn-accent" id="addCountryBtn" style="display:none" onclick="addCountry()">
+        <i class="ti ti-plus"></i> Adicionar país
+      </button>
+    </div>
+    <div id="tourBanners"></div>
+    <div id="hotelBanners"></div>
+    <div id="dayFilterBar"></div>
+    <div id="mainContent" style="flex:1">
+      <div class="empty-state">
+        <i class="ti ti-calendar-event empty-icon"></i>
+        <div class="empty-title">Nenhum dia selecionado</div>
+        <div class="empty-sub">Clique em um dia no calendário para planejar os passeios.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel: Tours -->
+  <div class="tab-panel" id="panel-tours">
+    <div class="links-header">
+      <div>
+        <div class="links-header-title">Passeios</div>
+        <div class="links-header-sub">Organize seus passeios com descrição, horário, links e dia vinculado</div>
+      </div>
+      <button class="btn btn-accent" onclick="addTour()"><i class="ti ti-plus"></i> Adicionar passeio</button>
+    </div>
+    <div id="tourFilterBar"></div>
+    <div id="toursContent" style="flex:1"></div>
+  </div>
+
+  <!-- Panel: Links -->
+  <div class="tab-panel" id="panel-links">
+    <div class="links-header">
+      <div>
+        <div class="links-header-title">Links importantes</div>
+        <div class="links-header-sub">Passagens, reservas, mapas e qualquer link útil</div>
+      </div>
+      <button class="btn btn-accent" onclick="addLink()"><i class="ti ti-plus"></i> Adicionar</button>
+    </div>
+    <div id="linkFilterBar"></div>
+    <div id="linksContent" style="flex:1"></div>
+  </div>
+
+<!-- Panel: Hotéis -->
+<div class="tab-panel" id="panel-hotels">
+  <div class="links-header">
+    <div>
+      <div class="links-header-title">Hotéis</div>
+      <div class="links-header-sub">Endereços, check-in, check-out e links de reserva</div>
+    </div>
+    <button class="btn btn-accent" onclick="addHotel()"><i class="ti ti-plus"></i> Adicionar hotel</button>
+  </div>
+  <div id="hotelFilterBar"></div>
+  <div id="hotelsContent" style="flex:1"></div>
+</div>
+
+ <!-- Panel: Mapa -->
+<div class="tab-panel" id="panel-map">
+  <div class="map-toolbar">
+    <div>
+      <div class="map-toolbar-title">Mapa da viagem</div>
+      <div class="map-toolbar-sub" id="mapSubtitle">Adicione localizações nos cards de país para ver os pins</div>
+    </div>
+    <div class="map-legend">
+      <div class="map-legend-item"><div class="map-legend-dot" style="background:#2d6a4f"></div> Destino</div>
+      <div class="map-legend-item"><div class="map-legend-dot" style="background:#185fa5"></div> Vários dias</div>
+      <div class="map-legend-item"><div class="map-legend-dot" style="background:#534ab7"></div> Passeio</div>
+      <div class="map-legend-item"><div class="map-legend-dot" style="background:#993556"></div> Hotel</div>
+    </div>
+  </div>
+  <div id="mapContainer"></div>
+</div>
+
+  <!-- Panel: Guia -->
+  <div class="tab-panel" id="panel-guide">
+    <div class="guide-header">
+      <div>
+        <div class="guide-header-title">Guia diário</div>
+        <div class="guide-header-sub">Resumo de todos os dias, pronto para imprimir ou levar com você</div>
+      </div>
+      <button class="btn btn-accent" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir</button>
+    </div>
+    <div id="guideContent" style="flex:1"></div>
+  </div>
+</main>
+</div>
+
+<!-- Firebase Compat (versão mais simples) -->
+<script src="firebase-config.js"></script>
+<script src="auth.js"></script>
+<script src="store-firebase.js"></script>
+<script src="utils.js"></script>
+<script src="calendar.js"></script>
+<script src="tabs.js"></script>
+<script src="days.js"></script>
+<script src="tours.js"></script>
+<script src="links.js"></script>
+<script src="hotels.js"></script>
+<script src="map.js"></script>
+<script src="guide.js"></script>
+<script src="init.js"></script>
+</body>
+</html>
