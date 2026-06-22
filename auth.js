@@ -6,12 +6,14 @@ auth.onAuthStateChanged(async (user) => {
     // Usuário logado
     currentUser = user;
     console.log('✓ Usuário logado:', user.email);
+    console.log('📧 Email verificado:', user.emailVerified);
     
     // Carregar a primeira viagem ou criar uma nova
     await loadUserTrip();
     
     // Mostrar o app
     showApp();
+    
   } else {
     // Usuário deslogado
     currentUser = null;
@@ -50,18 +52,18 @@ function showLoginScreen() {
               <label>Senha</label>
               <input type="password" id="loginPassword" placeholder="Sua senha" autocomplete="current-password" />
             </div>
-           <button class="auth-btn auth-btn-primary" onclick="handleLogin()">
-  <i class="ti ti-login-2"></i> Entrar
-</button>
-<div class="auth-forgot">
-  <a href="#" onclick="event.preventDefault(); showForgotPasswordForm();">
-    Esqueceu a senha?
-  </a>
-</div>
-<p class="auth-switch">
-  Não tem conta? 
-  <a href="#" onclick="event.preventDefault(); showRegisterForm();">Criar conta</a>
-</p>
+            <button class="auth-btn auth-btn-primary" onclick="handleLogin()">
+              <i class="ti ti-login-2"></i> Entrar
+            </button>
+            <div class="auth-forgot">
+              <a href="#" onclick="event.preventDefault(); showForgotPasswordForm();">
+                Esqueceu a senha?
+              </a>
+            </div>
+            <p class="auth-switch">
+              Não tem conta? 
+              <a href="#" onclick="event.preventDefault(); showRegisterForm();">Criar conta</a>
+            </p>
             <div id="loginError" class="auth-error" style="display:none"></div>
           </div>
           
@@ -112,7 +114,6 @@ function showApp() {
   const appDiv = document.querySelector('.app');
   if (appDiv) {
     appDiv.style.display = 'grid';
-    // Ajustar display para mobile se necessário
     if (window.innerWidth <= 768) {
       appDiv.style.display = 'block';
     }
@@ -122,7 +123,6 @@ function showApp() {
   if (typeof initApp === 'function') {
     initApp();
   } else {
-    // Fallback se initApp não existir
     const now = new Date();
     viewYear = now.getFullYear();
     viewMonth = now.getMonth();
@@ -182,7 +182,6 @@ async function handleLogin() {
     
     showError(errorDiv, message);
     
-    const btn = document.querySelector('#loginForm .auth-btn');
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = '<i class="ti ti-login-2"></i> Entrar';
@@ -230,7 +229,6 @@ async function handleRegister() {
       console.log('✅ Dados salvos no Firestore');
     } catch (firestoreError) {
       console.error('❌ Erro ao salvar no Firestore:', firestoreError);
-      // Não bloqueia o registro
     }
     
     // 3. Criar primeira viagem automaticamente
@@ -261,12 +259,19 @@ async function handleRegister() {
       
     } catch (tripError) {
       console.error('❌ Erro ao criar viagem:', tripError);
-      // Criar ID local como fallback
       currentTripId = 'default';
       data = {};
       links = [];
       hotels = [];
       tours = [];
+    }
+    
+    // 4. Enviar email de verificação (silenciosamente)
+    try {
+      await auth.currentUser.sendEmailVerification();
+      console.log('📧 Email de verificação enviado');
+    } catch (e) {
+      console.log('⚠️ Não foi possível enviar verificação:', e.message);
     }
     
     // O onAuthStateChanged vai automaticamente chamar showApp()
@@ -298,7 +303,6 @@ async function handleRegister() {
     
     showError(errorDiv, message);
     
-    const btn = document.querySelector('#registerForm .auth-btn');
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = '<i class="ti ti-user-plus"></i> Registrar';
@@ -309,14 +313,12 @@ async function handleRegister() {
 async function loadUserTrip() {
   if (!currentUser) return;
   
-  // Marcar como não inicializado durante o carregamento
   isInitialized = false;
   isLoading = true;
   
   try {
     console.log('🔄 Carregando viagens do usuário...');
     
-    // Buscar a viagem mais recente do usuário
     const tripsSnapshot = await db.collection('users')
       .doc(currentUser.uid)
       .collection('trips')
@@ -328,7 +330,6 @@ async function loadUserTrip() {
       const tripDoc = tripsSnapshot.docs[0];
       currentTripId = tripDoc.id;
       
-      // Carregar dados da viagem para as variáveis globais
       const tripData = tripDoc.data();
       data = tripData.days || {};
       links = tripData.links || [];
@@ -340,7 +341,6 @@ async function loadUserTrip() {
     } else {
       console.log('📝 Nenhuma viagem encontrada, criando padrão...');
       
-      // Criar viagem padrão
       const tripData = {
         name: 'Minha Viagem',
         days: {},
@@ -365,173 +365,39 @@ async function loadUserTrip() {
       console.log('✅ Viagem padrão criada:', currentTripId);
     }
     
-    // MARCAR COMO INICIALIZADO - Só depois de carregar tudo
     isInitialized = true;
     showSaveStatus('idle');
     console.log('✅ Sistema inicializado e pronto para salvar');
     
   } catch (error) {
     console.error('❌ Erro ao carregar viagem:', error);
-    // Inicializar vazio como fallback
     currentTripId = 'offline';
     data = {};
     links = [];
     hotels = [];
     tours = [];
-    isInitialized = true; // Permite salvar offline
+    isInitialized = true;
     showSaveStatus('error');
   } finally {
     isLoading = false;
   }
 }
-function showError(element, message) {
-  if (!element) return;
-  element.textContent = message;
-  element.style.display = 'block';
-  
-  // Esconder após 4 segundos
-  setTimeout(() => {
-    if (element) element.style.display = 'none';
-  }, 4000);
-}
-
-function showLoginForm() {
-  const loginForm = document.getElementById('loginForm');
-  const registerForm = document.getElementById('registerForm');
-  const forgotForm = document.getElementById('forgotPasswordForm');
-  
-  // Mostrar login
-  if (loginForm) loginForm.style.display = 'block';
-  
-  // Esconder registro
-  if (registerForm) registerForm.style.display = 'none';
-  
-  // Esconder recuperação de senha (REMOVER completamente)
-  if (forgotForm) {
-    forgotForm.remove(); // Remove o elemento do DOM
-  }
-  
-  // Limpar erros
-  const loginError = document.getElementById('loginError');
-  if (loginError) loginError.style.display = 'none';
-}
-
-function showRegisterForm() {
-  const loginForm = document.getElementById('loginForm');
-  const registerForm = document.getElementById('registerForm');
-  const forgotForm = document.getElementById('forgotPasswordForm');
-  
-  // Esconder login
-  if (loginForm) loginForm.style.display = 'none';
-  
-  // Mostrar registro
-  if (registerForm) registerForm.style.display = 'block';
-  
-  // Esconder recuperação de senha (REMOVER completamente)
-  if (forgotForm) {
-    forgotForm.remove(); // Remove o elemento do DOM
-  }
-  
-  // Limpar erros
-  const registerError = document.getElementById('registerError');
-  if (registerError) registerError.style.display = 'none';
-}
-
-async function handleLogout() {
-  // Fechar dropdown se estiver aberto
-  const dropdown = document.getElementById('userDropdown');
-  if (dropdown) dropdown.style.display = 'none';
-  
-  const confirmed = await confirmAction(
-    'Tem certeza que deseja sair da sua conta? Seus dados continuarão salvos na nuvem.',
-    'Sair da conta'
-  );
-  
-  if (confirmed) {
-    try {
-      // Desmarcar inicialização
-      isInitialized = false;
-      
-      // Salvar uma última vez antes de sair
-      if (currentUser && currentTripId) {
-        try {
-          const tripRef = db.collection('users')
-            .doc(currentUser.uid)
-            .collection('trips')
-            .doc(currentTripId);
-          
-          await tripRef.update({
-            days: data,
-            links: links,
-            hotels: hotels,
-            tours: tours,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          console.log('✅ Último salvamento antes de sair concluído');
-        } catch (e) {
-          console.log('⚠️ Não foi possível salvar antes de sair:', e.message);
-        }
-      }
-      
-      await auth.signOut();
-      console.log('✓ Usuário deslogado com sucesso');
-      
-      // Limpar variáveis globais
-      currentUser = null;
-      currentTripId = null;
-      data = {};
-      links = [];
-      hotels = [];
-      tours = [];
-      selectedDate = null;
-      isInitialized = false;
-      
-      // Remover status de salvamento
-      const statusEl = document.getElementById('saveStatus');
-      if (statusEl) statusEl.remove();
-      
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-    }
-  }
-}
-
-// Suporte a tecla Enter nos formulários
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') {
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    
-    if (loginForm && loginForm.style.display !== 'none') {
-      e.preventDefault();
-      handleLogin();
-    } else if (registerForm && registerForm.style.display !== 'none') {
-      e.preventDefault();
-      handleRegister();
-    }
-  }
-});
 
 // =============================================
 // RECUPERAÇÃO DE SENHA
 // =============================================
 
-// Mostrar formulário de "Esqueceu a senha"
 function showForgotPasswordForm() {
   const loginForm = document.getElementById('loginForm');
   const registerForm = document.getElementById('registerForm');
   
-  // Esconder login
   if (loginForm) loginForm.style.display = 'none';
-  
-  // Esconder registro
   if (registerForm) registerForm.style.display = 'none';
   
-  // Remover formulário de recuperação existente (se houver)
+  // Remover formulário existente
   const existingForgot = document.getElementById('forgotPasswordForm');
   if (existingForgot) existingForgot.remove();
   
-  // Criar novo formulário
   const forgotHTML = `
     <div id="forgotPasswordForm" class="auth-form" style="display:block">
       <h2>Recuperar Senha</h2>
@@ -555,18 +421,17 @@ function showForgotPasswordForm() {
     </div>
   `;
   
-  // Inserir após o registerForm
   const registerFormEl = document.getElementById('registerForm');
   if (registerFormEl) {
     registerFormEl.insertAdjacentHTML('afterend', forgotHTML);
   }
   
-  // Focar no campo de email
   setTimeout(() => {
     const emailInput = document.getElementById('forgotEmail');
     if (emailInput) emailInput.focus();
   }, 100);
 }
+
 async function handleForgotPassword() {
   const email = document.getElementById('forgotEmail').value;
   const errorDiv = document.getElementById('forgotError');
@@ -592,7 +457,6 @@ async function handleForgotPassword() {
       handleCodeInApp: false
     });
     
-    // Mostrar mensagem de sucesso COM instruções sobre spam
     if (messageDiv) {
       messageDiv.innerHTML = `
         <i class="ti ti-mail-check" style="font-size:24px;display:block;margin-bottom:8px"></i>
@@ -601,9 +465,9 @@ async function handleForgotPassword() {
           Enviamos um link para <strong>${email}</strong>
         </p>
         <div style="
-          background: var(--yellow-light, #fef3c7);
-          border: 1px solid var(--yellow, #f59e0b);
-          color: var(--yellow-dark, #92400e);
+          background: #fef3c7;
+          border: 1px solid #f59e0b;
+          color: #92400e;
           padding: 10px;
           border-radius: 6px;
           margin-top: 12px;
@@ -613,7 +477,6 @@ async function handleForgotPassword() {
           <strong>⚠️ Não encontrou o email?</strong><br>
           • Verifique a pasta de <strong>SPAM</strong> ou <strong>Lixo eletrônico</strong><br>
           • Verifique a aba <strong>Promoções</strong> (Gmail)<br>
-          • Adicione <strong>noreply@trip-planner-bc3f9.firebaseapp.com</strong> aos seus contatos<br>
           • Aguarde até 5 minutos para o email chegar
         </div>
       `;
@@ -657,142 +520,114 @@ async function handleForgotPassword() {
 }
 
 // =============================================
-// VERIFICAÇÃO DE EMAIL
+// FUNÇÕES AUXILIARES
 // =============================================
 
-// Enviar email de verificação após registro
-async function sendVerificationEmail() {
-  if (!auth.currentUser) return;
+function showError(element, message) {
+  if (!element) return;
+  element.textContent = message;
+  element.style.display = 'block';
+  setTimeout(() => {
+    if (element) element.style.display = 'none';
+  }, 4000);
+}
+
+function showLoginForm() {
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const forgotForm = document.getElementById('forgotPasswordForm');
   
-  try {
-    await auth.currentUser.sendEmailVerification({
-      url: window.location.origin + window.location.pathname,
-      handleCodeInApp: false
-    });
-    
-    console.log('✅ Email de verificação enviado');
-    
-    // Mostrar aviso na interface
-    showVerificationBanner();
-    
-  } catch (error) {
-    console.error('Erro ao enviar verificação:', error);
+  if (loginForm) loginForm.style.display = 'block';
+  if (registerForm) registerForm.style.display = 'none';
+  if (forgotForm) forgotForm.remove();
+  
+  const loginError = document.getElementById('loginError');
+  if (loginError) loginError.style.display = 'none';
+}
+
+function showRegisterForm() {
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const forgotForm = document.getElementById('forgotPasswordForm');
+  
+  if (loginForm) loginForm.style.display = 'none';
+  if (registerForm) registerForm.style.display = 'block';
+  if (forgotForm) forgotForm.remove();
+  
+  const registerError = document.getElementById('registerError');
+  if (registerError) registerError.style.display = 'none';
+}
+
+async function handleLogout() {
+  const dropdown = document.getElementById('userDropdown');
+  if (dropdown) dropdown.style.display = 'none';
+  
+  const confirmed = await confirmAction(
+    'Tem certeza que deseja sair da sua conta? Seus dados continuarão salvos na nuvem.',
+    'Sair da conta'
+  );
+  
+  if (confirmed) {
+    try {
+      isInitialized = false;
+      
+      if (currentUser && currentTripId) {
+        try {
+          const tripRef = db.collection('users')
+            .doc(currentUser.uid)
+            .collection('trips')
+            .doc(currentTripId);
+          
+          await tripRef.update({
+            days: data,
+            links: links,
+            hotels: hotels,
+            tours: tours,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          console.log('✅ Último salvamento antes de sair concluído');
+        } catch (e) {
+          console.log('⚠️ Não foi possível salvar antes de sair:', e.message);
+        }
+      }
+      
+      await auth.signOut();
+      console.log('✓ Usuário deslogado com sucesso');
+      
+      currentUser = null;
+      currentTripId = null;
+      data = {};
+      links = [];
+      hotels = [];
+      tours = [];
+      selectedDate = null;
+      isInitialized = false;
+      
+      const statusEl = document.getElementById('saveStatus');
+      if (statusEl) statusEl.remove();
+      
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
   }
 }
 
-// Mostrar banner de verificação de email
-function showVerificationBanner() {
-  // Remover banner existente
-  const existingBanner = document.getElementById('verifyEmailBanner');
-  if (existingBanner) existingBanner.remove();
-  
-  if (!auth.currentUser || auth.currentUser.emailVerified) return;
-  
-  const banner = document.createElement('div');
-  banner.id = 'verifyEmailBanner';
-  banner.style.cssText = `
-    background: var(--blue-light);
-    color: var(--blue);
-    padding: 12px 20px;
-    text-align: center;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  `;
-  
-  banner.innerHTML = `
-    <span>
-      <i class="ti ti-mail"></i>
-      <strong>Verifique seu email!</strong> 
-      Enviamos um link para ${auth.currentUser.email}
-    </span>
-    <button onclick="sendVerificationEmail()" style="
-      background: var(--blue);
-      color: white;
-      border: none;
-      padding: 6px 14px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      font-family: inherit;
-    ">
-      Reenviar email
-    </button>
-    <button onclick="document.getElementById('verifyEmailBanner').remove()" style="
-      background: none;
-      border: none;
-      color: var(--blue);
-      cursor: pointer;
-      font-size: 18px;
-      padding: 0 4px;
-    ">
-      <i class="ti ti-x"></i>
-    </button>
-  `;
-  
-  // Inserir após a sidebar
-  const sidebar = document.querySelector('.sidebar');
-  if (sidebar) {
-    sidebar.parentNode.insertBefore(banner, sidebar);
-  }
-}
-
-// Verificar email após login
-async function checkEmailVerification() {
-  if (!auth.currentUser) return;
-  
-  // Recarregar usuário para obter status atualizado
-  await auth.currentUser.reload();
-  
-  if (auth.currentUser.emailVerified) {
-    // Email verificado, remover banner
-    const banner = document.getElementById('verifyEmailBanner');
-    if (banner) banner.remove();
-    console.log('✅ Email verificado');
-  } else {
-    // Email não verificado, mostrar banner
-    showVerificationBanner();
-  }
-}
-
-// =============================================
-// ATUALIZAR handleRegister E onAuthStateChanged
-// =============================================
-
-// Atualize a função handleRegister (adicione no final, após criar viagem):
-async function handleRegister() {
-  // ... (código existente igual) ...
-  
-  // Após criar usuário com sucesso:
-  // Enviar email de verificação
-  try {
-    await sendVerificationEmail();
-  } catch (e) {
-    console.log('⚠️ Não foi possível enviar verificação:', e.message);
-  }
-  
-  // O restante do código continua igual...
-}
-
-// Atualize onAuthStateChanged (adicione verificação):
-auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    currentUser = user;
-    console.log('✓ Usuário logado:', user.email);
-    console.log('📧 Email verificado:', user.emailVerified);
+// Suporte a tecla Enter nos formulários
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const forgotForm = document.getElementById('forgotPasswordForm');
     
-    await loadUserTrip();
-    showApp();
-    
-    // Verificar email (se não estiver verificado, mostra banner)
-    await checkEmailVerification();
-    
-  } else {
-    currentUser = null;
-    showLoginScreen();
+    if (loginForm && loginForm.style.display !== 'none') {
+      e.preventDefault();
+      handleLogin();
+    } else if (registerForm && registerForm.style.display !== 'none') {
+      e.preventDefault();
+      handleRegister();
+    } else if (forgotForm && forgotForm.style.display !== 'none') {
+      e.preventDefault();
+      handleForgotPassword();
+    }
   }
 });

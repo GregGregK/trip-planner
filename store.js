@@ -1,27 +1,18 @@
 // store-firebase.js - Gerenciamento de dados com Firebase
 
-// Variáveis globais (mantidas para compatibilidade)
 let data = {};
 let links = [];
 let hotels = [];
 let tours = [];
 
-// Timer para debounce do salvamento
 let saveTimeout = null;
-const SAVE_DELAY = 1000; // 1 segundo de debounce
+const SAVE_DELAY = 1000;
 
-// Flag para evitar salvar durante carregamento
 let isLoading = false;
 let isSaving = false;
-let isInitialized = false; // NOVA: controle de inicialização
+let isInitialized = false;
 
-// Salvar dados no Firestore com debounce
 function save() {
-  // NÃO SALVAR se:
-  // - Não tem usuário logado
-  // - Não tem viagem selecionada
-  // - Está carregando dados
-  // - Sistema não foi inicializado ainda
   if (!currentUser || !currentTripId || isLoading || !isInitialized) {
     console.log('⏸️ Salvamento ignorado:', {
       user: !!currentUser,
@@ -32,16 +23,12 @@ function save() {
     return;
   }
   
-  // Atualizar timestamp de modificação
   const now = firebase.firestore.FieldValue.serverTimestamp();
   
-  // Limpar timer anterior
   if (saveTimeout) clearTimeout(saveTimeout);
   
-  // Status de salvamento
   showSaveStatus('saving');
   
-  // Novo timer com debounce
   saveTimeout = setTimeout(async () => {
     if (isSaving || !isInitialized) return;
     isSaving = true;
@@ -62,7 +49,6 @@ function save() {
       
       showSaveStatus('saved');
       
-      // Também salvar no localStorage como backup
       try {
         const backup = {
           days: data,
@@ -71,14 +57,11 @@ function save() {
           tours: tours
         };
         localStorage.setItem('trip_planner_backup', JSON.stringify(backup));
-      } catch (e) {
-        // localStorage pode estar cheio
-      }
+      } catch (e) {}
       
     } catch (error) {
       console.error('Erro ao salvar:', error);
       
-      // Se documento não existe, criar
       if (error.code === 'not-found') {
         try {
           const tripRef = db.collection('users')
@@ -110,7 +93,6 @@ function save() {
   }, SAVE_DELAY);
 }
 
-// Mostrar status de salvamento
 function showSaveStatus(status) {
   const header = document.querySelector('.sidebar-header');
   if (!header) return;
@@ -142,7 +124,6 @@ function showSaveStatus(status) {
     case 'error':
       statusEl.innerHTML = '<i class="ti ti-cloud-x" style="font-size:10px"></i> Erro ao salvar';
       statusEl.style.color = 'var(--danger)';
-      // Limpar erro após 3 segundos
       setTimeout(() => {
         if (statusEl && statusEl.style.color === 'var(--danger)') {
           statusEl.innerHTML = '<i class="ti ti-cloud" style="font-size:10px"></i> Dados na nuvem';
@@ -154,5 +135,86 @@ function showSaveStatus(status) {
       statusEl.innerHTML = '<i class="ti ti-cloud" style="font-size:10px"></i> Dados na nuvem';
       statusEl.style.color = 'var(--muted)';
       break;
+  }
+}
+
+async function migrateFromLocalStorage() {
+  const oldData = localStorage.getItem('trip_planner_v3');
+  if (!oldData) {
+    console.log('📭 Nenhum dado local para migrar');
+    return;
+  }
+  
+  try {
+    const parsed = JSON.parse(oldData);
+    
+    if (!parsed.days || Object.keys(parsed.days).length === 0) {
+      console.log('📭 Dados locais vazios, ignorando');
+      localStorage.removeItem('trip_planner_v3');
+      return;
+    }
+    
+    const migrationDone = localStorage.getItem('trip_planner_migrated');
+    if (migrationDone === 'true') {
+      console.log('✅ Migração já foi feita anteriormente');
+      localStorage.removeItem('trip_planner_v3');
+      return;
+    }
+    
+    if (currentUser && currentTripId) {
+      try {
+        const tripDoc = await db.collection('users')
+          .doc(currentUser.uid)
+          .collection('trips')
+          .doc(currentTripId)
+          .get();
+        
+        if (tripDoc.exists) {
+          const firestoreData = tripDoc.data();
+          const firestoreDays = Object.keys(firestoreData.days || {}).length;
+          const localDays = Object.keys(parsed.days || {}).length;
+          
+          if (firestoreDays >= localDays) {
+            console.log('☁️ Dados da nuvem são mais recentes, ignorando migração');
+            localStorage.removeItem('trip_planner_v3');
+            localStorage.setItem('trip_planner_migrated', 'true');
+            return;
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Não foi possível verificar dados da nuvem:', error.message);
+      }
+    }
+    
+    const confirmed = await confirmAction(
+      `Encontramos ${Object.keys(parsed.days || {}).length} dias com dados salvos localmente. Deseja migrar para a nuvem?\n\n(Seus dados na nuvem serão substituídos pelos dados locais)`,
+      'Migrar dados locais'
+    );
+    
+    if (confirmed) {
+      data = parsed.days || {};
+      links = parsed.links || [];
+      hotels = parsed.hotels || [];
+      tours = parsed.tours || [];
+      
+      await save();
+      
+      localStorage.setItem('trip_planner_migrated', 'true');
+      localStorage.removeItem('trip_planner_v3');
+      
+      console.log('✅ Dados migrados com sucesso para a nuvem!');
+      
+      renderCalendar();
+      renderDaysList();
+      renderMain();
+      
+    } else {
+      console.log('❌ Migração recusada pelo usuário');
+      localStorage.setItem('trip_planner_migrated', 'true');
+      localStorage.removeItem('trip_planner_v3');
+    }
+    
+  } catch (error) {
+    console.error('❌ Erro ao migrar:', error);
   }
 }
