@@ -2,7 +2,8 @@
   "name": "Planejador de Viagem",
   "short_name": "Viagem",
   "description": "Organize países, passeios, hotéis e horários da sua viagem",
-  "start_url": "/",
+  "start_url": "/trip-planner/",
+  "scope": "/trip-planner/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#141412",
@@ -10,13 +11,13 @@
   "lang": "pt-BR",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "/trip-planner/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "/trip-planner/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

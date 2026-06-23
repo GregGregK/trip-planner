@@ -1,53 +1,49 @@
 // sw.js - Service Worker para suporte offline (PWA)
-const CACHE_NAME = 'trip-planner-v1';
+const CACHE_NAME = 'trip-planner-v2';
+const BASE = '/trip-planner';
 
-// Arquivos locais e CDN para cachear na instalação
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/firebase-config.js',
-  '/auth.js',
-  '/store-firebase.js',
-  '/utils.js',
-  '/calendar.js',
-  '/tabs.js',
-  '/days.js',
-  '/tours.js',
-  '/links.js',
-  '/hotels.js',
-  '/map.js',
-  '/guide.js',
-  '/init.js',
-  '/manifest.json',
-  // Leaflet
+  `${BASE}/`,
+  `${BASE}/index.html`,
+  `${BASE}/styles.css`,
+  `${BASE}/manifest.json`,
+  `${BASE}/firebase-config.js`,
+  `${BASE}/auth.js`,
+  `${BASE}/store-firebase.js`,
+  `${BASE}/utils.js`,
+  `${BASE}/calendar.js`,
+  `${BASE}/tabs.js`,
+  `${BASE}/days.js`,
+  `${BASE}/tours.js`,
+  `${BASE}/links.js`,
+  `${BASE}/hotels.js`,
+  `${BASE}/map.js`,
+  `${BASE}/guide.js`,
+  `${BASE}/init.js`,
+  `${BASE}/icons/icon-192.png`,
+  `${BASE}/icons/icon-512.png`,
+  // CDNs
   'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js',
   'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css',
-  // Tabler Icons
   'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css',
 ];
 
-// ─── Instalação: cacheia todos os assets ────────────────────────────────────
+// ─── Instalação ──────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   console.log('[SW] Instalando...');
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Cacheando assets...');
-      // Cacheia um por um para não falhar tudo se um CDN der erro
-      return Promise.allSettled(
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.allSettled(
         ASSETS_TO_CACHE.map((url) =>
-          cache.add(url).catch((err) => {
-            console.warn('[SW] Falha ao cachear:', url, err);
-          })
+          cache.add(url).catch((err) => console.warn('[SW] Falha ao cachear:', url, err))
         )
-      );
-    })
+      )
+    )
   );
-  // Ativa imediatamente sem esperar o tab fechar
   self.skipWaiting();
 });
 
-// ─── Ativação: limpa caches antigos ────────────────────────────────────────
+// ─── Ativação: limpa caches antigos ─────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   console.log('[SW] Ativando...');
   event.waitUntil(
@@ -62,31 +58,28 @@ self.addEventListener('activate', (event) => {
       )
     )
   );
-  // Toma controle de todas as abas abertas imediatamente
   self.clients.claim();
 });
 
-// ─── Fetch: Cache First para assets, Network First para Firebase ─────────────
+// ─── Fetch ───────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Deixa o Firebase passar direto (auth, firestore, gstatic)
-  // O Firestore tem sua própria camada de persistência offline
+  // Deixa Firebase passar direto (tem persistência própria)
   if (
     url.hostname.includes('firebase') ||
     url.hostname.includes('firestore') ||
     url.hostname.includes('gstatic') ||
     url.hostname.includes('googleapis')
   ) {
-    return; // Não intercepta — deixa o Firebase gerenciar
+    return;
   }
 
-  // Para os tiles do OpenStreetMap (mapa): Network first, cache fallback
+  // Tiles do OpenStreetMap: network first, cache fallback
   if (url.hostname.includes('tile.openstreetmap')) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          // Guarda o tile no cache para uso offline
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return response;
@@ -96,11 +89,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Para todo o resto: Cache First (app shell + CDNs)
+  // Tudo mais: cache first
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
-      // Não está no cache: busca na rede e guarda para próxima vez
       return fetch(event.request).then((response) => {
         if (response && response.status === 200 && response.type !== 'opaque') {
           const clone = response.clone();
