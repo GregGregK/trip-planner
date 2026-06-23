@@ -19,6 +19,6 @@ function switchTab(tab) {
   if (tab === 'links') renderLinks();
   if (tab === 'hotels') renderHotels();
   if (tab === 'tours') renderTours();
-  if (tab === 'map') { setTimeout(initMap, 80); }
+if (tab === 'map') { setTimeout(initMap, 200); }
   if (tab === 'guide') renderGuide();
 }

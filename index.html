@@ -8,13 +8,6 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="styles.css">
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
-<!-- Firebase Config -->
-<script src="firebase-config.js"></script>
 </head>
 <body>
 <div class="app">
@@ -105,35 +98,35 @@
     <div id="linksContent" style="flex:1"></div>
   </div>
 
-<!-- Panel: Hotéis -->
-<div class="tab-panel" id="panel-hotels">
-  <div class="links-header">
-    <div>
-      <div class="links-header-title">Hotéis</div>
-      <div class="links-header-sub">Endereços, check-in, check-out e links de reserva</div>
+  <!-- Panel: Hotéis -->
+  <div class="tab-panel" id="panel-hotels">
+    <div class="links-header">
+      <div>
+        <div class="links-header-title">Hotéis</div>
+        <div class="links-header-sub">Endereços, check-in, check-out e links de reserva</div>
+      </div>
+      <button class="btn btn-accent" onclick="addHotel()"><i class="ti ti-plus"></i> Adicionar hotel</button>
     </div>
-    <button class="btn btn-accent" onclick="addHotel()"><i class="ti ti-plus"></i> Adicionar hotel</button>
+    <div id="hotelFilterBar"></div>
+    <div id="hotelsContent" style="flex:1"></div>
   </div>
-  <div id="hotelFilterBar"></div>
-  <div id="hotelsContent" style="flex:1"></div>
-</div>
 
- <!-- Panel: Mapa -->
-<div class="tab-panel" id="panel-map">
-  <div class="map-toolbar">
-    <div>
-      <div class="map-toolbar-title">Mapa da viagem</div>
-      <div class="map-toolbar-sub" id="mapSubtitle">Adicione localizações nos cards de país para ver os pins</div>
+  <!-- Panel: Mapa -->
+  <div class="tab-panel" id="panel-map">
+    <div class="map-toolbar">
+      <div>
+        <div class="map-toolbar-title">Mapa da viagem</div>
+        <div class="map-toolbar-sub" id="mapSubtitle">Adicione localizações nos cards de país para ver os pins</div>
+      </div>
+      <div class="map-legend">
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:#2d6a4f"></div> Destino</div>
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:#185fa5"></div> Vários dias</div>
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:#534ab7"></div> Passeio</div>
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:#993556"></div> Hotel</div>
+      </div>
     </div>
-    <div class="map-legend">
-      <div class="map-legend-item"><div class="map-legend-dot" style="background:#2d6a4f"></div> Destino</div>
-      <div class="map-legend-item"><div class="map-legend-dot" style="background:#185fa5"></div> Vários dias</div>
-      <div class="map-legend-item"><div class="map-legend-dot" style="background:#534ab7"></div> Passeio</div>
-      <div class="map-legend-item"><div class="map-legend-dot" style="background:#993556"></div> Hotel</div>
-    </div>
+    <div id="mapContainer"></div>
   </div>
-  <div id="mapContainer"></div>
-</div>
 
   <!-- Panel: Guia -->
   <div class="tab-panel" id="panel-guide">
@@ -149,8 +142,16 @@
 </main>
 </div>
 
-<!-- Firebase Compat (versão mais simples) -->
+<!-- Leaflet -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
+
+<!-- App -->
 <script src="auth.js"></script>
 <script src="store-firebase.js"></script>
 <script src="utils.js"></script>

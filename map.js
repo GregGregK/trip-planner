@@ -6,13 +6,15 @@ function initMap() {
   const container = document.getElementById('mapContainer');
   if (!container) return;
 
-  if (!mapInstance) {
-    mapInstance = L.map('mapContainer', { zoomControl: true }).setView([20, 10], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
-      maxZoom: 18
-    }).addTo(mapInstance);
-  }
+ if (mapInstance) {
+  mapInstance.remove();
+  mapInstance = null;
+}
+mapInstance = L.map('mapContainer', { zoomControl: true }).setView([20, 10], 2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+  maxZoom: 18
+}).addTo(mapInstance);
 
   mapMarkers.forEach(m => m.remove());
   mapMarkers = [];
