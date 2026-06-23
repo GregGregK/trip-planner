@@ -5,6 +5,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Planejador de Viagem</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2d6a4f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Viagem">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<!-- Estilos -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="styles.css">
@@ -23,9 +33,7 @@
   </div>
   <div class="sidebar-collapsible" id="sidebarCollapsible">
     <div class="calendar">
-      <div class="cal-nav" id="calNav">
-        <!-- Preenchido dinamicamente pelo calendar.js -->
-      </div>
+      <div class="cal-nav" id="calNav"></div>
       <div class="cal-grid" id="calGrid">
         <div class="cal-dow">D</div><div class="cal-dow">S</div><div class="cal-dow">T</div>
         <div class="cal-dow">Q</div><div class="cal-dow">Q</div><div class="cal-dow">S</div><div class="cal-dow">S</div>
@@ -164,5 +172,16 @@
 <script src="map.js"></script>
 <script src="guide.js"></script>
 <script src="init.js"></script>
+
+<!-- Service Worker (PWA) -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('[PWA] Service Worker registrado:', reg.scope))
+        .catch(err => console.warn('[PWA] Falha ao registrar SW:', err));
+    });
+  }
+</script>
 </body>
 </html>
